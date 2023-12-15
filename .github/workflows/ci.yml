@@ -1,0 +1,35 @@
+# Nom du workflow de notre pipeline d'intégration et déploiement continue
+name: CI/CD Pipeline
+
+# Déclenche ce workflow sur les pull requests vers la branche main afin qu'elle ne contienne que des commits de merge (de PR)
+on:
+  pull_request:
+    branches:
+      - main
+
+# Définition du job de build pour la pull request
+jobs:
+  build:
+    # Utilisation de la dernière version d'Ubuntu comme environnement d'exécution
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout du code du dépôt
+    - uses: actions/checkout@v2
+
+    # Installation des dépendances du projet
+    - name: Install dependencies
+      run: npm install
+
+    # Exécution du linter pour vérifier le respect des conventions de code
+    - name: Run Linter
+      run: npm run lint
+
+    # Exécution des tests pour s'assurer que le code fonctionne comme prévu
+    - name: Run tests
+      run: npm run vitest
+
+    # Construction du projet, préparation pour le déploiement ou la livraison
+    - name: Build
+      run: npm run build
+
