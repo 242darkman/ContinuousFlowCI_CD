@@ -69,3 +69,22 @@ jobs:
         push: true # Active le push de l'image vers un registre Docker
         tags: 242darkman/quizz:v${{ env.VERSION }} # Tags de l'image Docker
 
+  release: # Job de création de release GitHub
+    needs: deploy # Ce job dépend du succès du job 'deploy'
+    runs-on: ubuntu-latest # Exécute le job sur la dernière version d'Ubuntu disponible
+    # Condition pour exécuter ce job: uniquement lorsqu'un tag Git est créé
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - uses: actions/checkout@v2 # Clone le code du dépôt dans l'environnement de build
+
+    - name: Create GitHub Release # Crée une nouvelle release GitHub
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Utilise un token GitHub pour authentifier les actions avec le dépôt
+      with:
+        tag_name: ${{ github.ref }} # Utilise le nom du tag Git comme nom du tag pour la release
+        release_name: Release ${{ github.ref }} # Définit le nom de la release, incluant le nom du tag
+        draft: false # Indique que la release ne sera pas un brouillon
+        prerelease: false # Indique que la release n'est pas une pré-release
