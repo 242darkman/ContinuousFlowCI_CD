@@ -9,6 +9,8 @@ on:
   push:
     branches: 
       - main # ajout d'un job pour le déploiement continu sur la branche principale lorsque les changements seront fusionnés
+    tags:
+      - '*'
 
 # Définition du job de build pour la pull request
 jobs:
