@@ -9,6 +9,8 @@ on:
   push:
     branches: 
       - main # ajout d'un job pour le déploiement continu sur la branche principale lorsque les changements seront fusionnés
+    tags:
+      - '*'
 
 # Définition du job de build pour la pull request
 jobs:
@@ -42,3 +44,49 @@ jobs:
     needs: build
     # Utilisation de la dernière version d'Ubuntu pour le déploiement
     runs-on: ubuntu-latest
+    # Condition pour exécuter ce job uniquement si les changements sont sur la branche main
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    # Checkout du code du dépôt pour le déploiement
+    - uses: actions/checkout@v2
+
+    # Extraction du numéro de version de package.json
+    - name: Extract version from package.json
+      id: package_version
+      run: echo "VERSION=$(cat package.json | jq -r .version)" >> $GITHUB_ENV
+
+    # Connexion au registre Docker
+    - name: Login to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # Construction et push de l'image Docker
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v2
+      with:
+        context: . # Définit le contexte de construction à l'emplacement actuel du dépôt
+        push: true # Active le push de l'image vers un registre Docker
+        tags: 242darkman/quizz:v${{ env.VERSION }} # Tags de l'image Docker
+
+  release: # Job de création de release GitHub
+    needs: deploy # Ce job dépend du succès du job 'deploy'
+    runs-on: ubuntu-latest # Exécute le job sur la dernière version d'Ubuntu disponible
+    # Condition pour exécuter ce job: uniquement lorsqu'un tag Git est créé
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - uses: actions/checkout@v2 # Clone le code du dépôt dans l'environnement de build
+
+    - name: Create GitHub Release # Crée une nouvelle release GitHub
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Utilise un token GitHub pour authentifier les actions avec le dépôt
+      with:
+        tag_name: ${{ github.ref }} # Utilise le nom du tag Git comme nom du tag pour la release
+        release_name: Release ${{ github.ref }} # Définit le nom de la release, incluant le nom du tag
+        draft: false # Indique que la release ne sera pas un brouillon
+        prerelease: false # Indique que la release n'est pas une pré-release
